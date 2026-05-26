@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Calculateur Congés CCN – Semaine 5 jours</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f5f5f2;color:#1a1a1a;padding:1.5rem;min-height:100vh}
+h1{font-size:17px;font-weight:600;margin-bottom:1.25rem}
+.cards{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:1rem}
+.card{background:#fff;border-radius:10px;padding:.85rem 1rem;border:1px solid #e5e5e2}
+.card .label{font-size:10px;color:#888;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;font-weight:500}
+.card .val{font-size:22px;font-weight:600;color:#1a1a1a}
+.card.warn .val{color:#c0392b}
+.card.dim .val{color:#aaa}
+.card.accent{border-color:#1d9e75;background:#eaf3de}
+.card.accent .label{color:#3b6d11}
+.card.accent .val{color:#0f6e56}
+/* Solde editable inline dans la carte */
+.card .val-input{width:80px;font-size:22px;font-weight:600;color:#0f6e56;border:none;border-bottom:2px dashed #1d9e75;background:transparent;outline:none;padding:2px 0;cursor:text}
+.card .val-input:focus{border-bottom:2px solid #1d9e75;background:#d4edda;border-radius:4px 4px 0 0;padding:2px 4px}
+.card .sub{font-size:11px;color:#3b6d11;margin-top:4px;display:flex;align-items:center;gap:3px}
+.plus-row{display:flex;align-items:center;gap:8px;margin-bottom:1rem;flex-wrap:wrap}
+.plus-btn{background:#fff;border:1px solid #1d9e75;border-radius:8px;padding:6px 14px;font-size:13px;cursor:pointer;color:#0f6e56;font-weight:500}
+.plus-btn:hover{background:#eaf3de}
+.hint{font-size:11px;color:#aaa}
+.progress-wrap{background:#fff;border:1px solid #e5e5e2;border-radius:10px;padding:.75rem 1rem;margin-bottom:1rem}
+.progress-label{display:flex;justify-content:space-between;font-size:12px;color:#888;margin-bottom:5px}
+.progress-bar{background:#e5e5e2;border-radius:20px;height:8px;overflow:hidden}
+.progress-fill{background:#1d9e75;height:100%;border-radius:20px;transition:width .3s}
+.progress-fill.warn{background:#e74c3c}
+.nav{display:flex;align-items:center;gap:10px;margin-bottom:.75rem}
+.nav button{background:#fff;border:1px solid #ddd;border-radius:8px;padding:4px 12px;cursor:pointer;color:#1a1a1a;font-size:13px}
+.nav button:hover{background:#f0f0ee}
+.nav .mth{font-size:15px;font-weight:600;min-width:150px;text-align:center}
+.cal{width:100%;border-collapse:collapse;margin-bottom:1rem}
+.cal th{font-size:11px;color:#888;padding:6px 2px;text-align:center;font-weight:500}
+.cal th.weekend{color:#ccc}
+.cal td{text-align:center;padding:2px;width:14.28%}
+.day-btn{width:36px;height:36px;border-radius:50%;border:none;background:none;cursor:pointer;font-size:13px;color:#1a1a1a;display:inline-flex;align-items:center;justify-content:center;position:relative;transition:background .1s}
+.day-btn:hover:not(:disabled){background:#f0f0ee}
+.day-btn:disabled{cursor:default}
+.day-btn.off-day{color:#ccc}
+.day-btn.selected{background:#1d9e75;color:#fff;font-weight:600}
+.day-btn.auto-mer{background:#fac775;color:#633806}
+.day-btn.auto-sam{background:#b5d4f4;color:#0c447c}
+.day-btn.ferie{color:#e74c3c;text-decoration:line-through}
+.day-btn.recorded{color:#bbb}
+.day-btn.recorded::after{content:'';position:absolute;bottom:3px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:#1d9e75}
+.panel{background:#fff;border:1px solid #e5e5e2;border-radius:10px;padding:1rem;margin-bottom:1rem}
+.panel h3{font-size:11px;font-weight:600;color:#888;margin-bottom:.75rem;text-transform:uppercase;letter-spacing:.06em}
+.day-tag{display:inline-flex;align-items:center;gap:4px;font-size:12px;border-radius:20px;padding:3px 10px;margin:3px;cursor:pointer;border:1px solid transparent}
+.day-tag.sel{background:#eaf3de;color:#3b6d11;border-color:#c0dd97}
+.day-tag.mer{background:#faeeda;color:#633806;border-color:#fac775}
+.day-tag.sam{background:#e6f1fb;color:#0c447c;border-color:#b5d4f4}
+.day-tag .rm{font-size:14px;font-weight:600;margin-left:2px;opacity:.6}
+.total-line{display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;border-top:1px solid #e5e5e2;margin-top:.5rem;font-size:14px;font-weight:600}
+.alert{font-size:12px;color:#856404;background:#fff3cd;border-radius:8px;padding:6px 10px;margin-top:6px;border:1px solid #ffc107}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem}
+.btn-row button{border:1px solid #ddd;border-radius:8px;padding:7px 18px;font-size:13px;cursor:pointer;background:#fff;color:#1a1a1a}
+.btn-row button:hover{background:#f0f0ee}
+.btn-row button.primary{background:#1d9e75;color:#fff;border-color:#1d9e75;font-weight:600}
+.btn-row button.primary:hover{background:#0f6e56}
+.note-inp{width:100%;font-size:13px;padding:6px 10px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#1a1a1a;resize:none;margin-bottom:.75rem;font-family:inherit}
+.hist-item{border:1px solid #e5e5e2;border-radius:8px;padding:.75rem;margin-bottom:.5rem;font-size:13px;background:#fafafa}
+.hi-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.hi-sub{color:#666;font-size:12px;margin-top:3px}
+.hi-note{color:#888;font-style:italic;font-size:12px;margin-top:4px}
+.badge{font-size:11px;border-radius:20px;padding:2px 8px;font-weight:600;background:#eaf3de;color:#3b6d11}
+.del-btn{background:none;border:none;cursor:pointer;color:#aaa;font-size:18px;padding:0 4px;line-height:1}
+.del-btn:hover{color:#e74c3c}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:1rem}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:#888}
+.leg-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0}
+.section-title{font-size:12px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem}
+.modal-bg{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.35);z-index:100;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal-box{background:#fff;border-radius:14px;padding:1.5rem;max-width:320px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.15)}
+.modal-box h3{font-size:15px;font-weight:600;margin-bottom:.5rem}
+.modal-box p{font-size:13px;color:#666;margin-bottom:1rem;line-height:1.6}
+.modal-box input{width:100%;padding:10px 12px;font-size:18px;font-weight:700;border:1.5px solid #1d9e75;border-radius:8px;margin-bottom:1rem;text-align:center;color:#0f6e56;background:#eaf3de}
+.modal-row{display:flex;gap:8px}
+.modal-row button{flex:1;border-radius:8px;padding:8px;font-size:13px;cursor:pointer;border:1px solid #ddd;background:#fff}
+.modal-row button.ok{background:#1d9e75;color:#fff;border-color:#1d9e75;font-weight:600}
+.periode-panel{background:#fff;border:2px dashed #1d9e75;border-radius:10px;padding:1rem;margin-bottom:1rem}
+.periode-panel h3{font-size:12px;font-weight:600;color:#0f6e56;margin-bottom:.75rem;text-transform:uppercase;letter-spacing:.05em}
+.periode-row{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:.75rem}
+.periode-field{display:flex;flex-direction:column;gap:4px}
+.periode-field label{font-size:11px;color:#888;font-weight:500}
+.periode-field input[type=date]{padding:7px 10px;font-size:14px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#1a1a1a}
+.periode-arrow{font-size:20px;color:#ccc;padding-bottom:4px}
+.periode-result{background:#eaf3de;border-radius:8px;padding:.75rem 1rem;font-size:13px;margin-top:.5rem}
+.periode-result .tot{font-size:18px;font-weight:700;color:#0f6e56;margin-bottom:4px}
+.periode-result .detail{font-size:12px;color:#3b6d11;line-height:1.6}
+</style>
+</head>
+<body>
+<h1>📅 Calculateur de congés – CCN Services aux entreprises (semaine 5 jours)</h1>
+
+<div class="modal-bg" id="modal">
+  <div class="modal-box">
+    <h3>➕ Ajouter des jours acquis</h3>
+    <p>Nombre de jours à ajouter à ton solde.<br><span style="color:#aaa;font-size:11px">2,5 j.o. = 1 mois travaillé</span></p>
+    <input type="number" id="acq-input" min="0.5" step="0.5" placeholder="2.5"/>
+    <div class="modal-row">
+      <button onclick="closeModal()">Annuler</button>
+      <button class="ok" onclick="confirmAcq()">✓ Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="raz-modal">
+  <div class="modal-box">
+    <h3>🔄 Remise à zéro – Ven → Sam</h3>
+    <p>Le compteur repart à <strong>0/5</strong> pour la nouvelle période (1er juin).<br><span style="color:#aaa;font-size:11px">L'historique des congés est conservé.</span></p>
+    <div class="modal-row">
+      <button onclick="closeRazModal()">Annuler</button>
+      <button class="ok" onclick="confirmRAZ()">✓ Remettre à zéro</button>
+    </div>
+  </div>
+</div>
+
+<div id="app"></div>
+
+<script>
+// Lundi de Pentecôte retiré (jour travaillé chez MS Propreté)
+const FERIES=new Set(['2024-05-01','2024-05-08','2024-07-14','2024-08-15','2024-11-01','2024-11-11','2024-12-25','2025-01-01','2025-04-21','2025-05-01','2025-05-08','2025-05-29','2025-07-14','2025-08-15','2025-11-01','2025-11-11','2025-12-25','2026-01-01','2026-04-06','2026-05-01','2026-05-08','2026-05-14','2026-07-14','2026-08-15','2026-11-01','2026-11-11','2026-12-25']);
+const JOURS_HDR=['Lu','Ma','Me','Je','Ve','Sa','Di'];
+const MOIS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const WORK_DAYS=new Set([1,2,3,4,5]);
+const today=new Date();
+
+function fmt(d){return d.toISOString().slice(0,10)}
+function fmtFR(s){const[y,m,d]=s.split('-');return`${d}/${m}/${y}`}
+function dow(s){return new Date(s+'T12:00:00').getDay()}
+function addDays(s,n){const d=new Date(s+'T12:00:00');d.setDate(d.getDate()+n);return fmt(d)}
+function isFerie(s){return FERIES.has(s)}
+function mondayOffset(s){const dw=new Date(s+'T12:00:00').getDay();return dw===0?6:dw-1;}
+
+function calc(sel,fsUsed){
+  const sorted=[...sel].sort();
+  let tot=0,mA=[],sA=[],fs=fsUsed;
+  for(const s of sorted){
+    const dw=dow(s);
+    if(!WORK_DAYS.has(dw)||isFerie(s))continue;
+    tot++;
+    // Vendredi posé → samedi auto (max 5)
+    if(dw===5&&fs<5){
+      const nxt=addDays(s,1);
+      if(!isFerie(nxt)&&!sA.includes(nxt)){sA.push(nxt);tot++;fs++;}
+    }
+    // Jeudi posé + vendredi suivant férié → samedi déduit aussi (si fs < 5)
+    if(dw===4){
+      const ven=addDays(s,1);
+      if(isFerie(ven)&&dow(ven)===5&&fs<5){
+        const sam=addDays(ven,1);
+        if(!isFerie(sam)&&!sA.includes(sam)){sA.push(sam);tot++;fs++;}
+      }
+    }
+  }
+  return{tot,mA,sA};
+}
+
+let state={
+  solde: 0,
+  moisTravailles: 1,
+  year: today.getFullYear(),
+  month: today.getMonth(),
+  sel: new Set(),
+  history: [],
+  note: '',
+  fsResetCount: 0
+};
+
+function usedFromHistory(){return Math.round(state.history.reduce((a,h)=>a+h.tot,0)*10)/10;}
+function fsUsedFromHistory(){
+  const total=state.history.reduce((a,h)=>a+(h.sA?h.sA.length:0),0);
+  return Math.max(0, total - state.fsResetCount);
+}
+function recordedDates(){const s=new Set();for(const h of state.history)if(h.days)for(const d of h.days)s.add(d);return s;}
+
+function render(){
+  const app=document.getElementById('app');
+  const posed=usedFromHistory();
+  const restants=Math.round((state.solde-posed)*10)/10;
+  const fsUsed=fsUsedFromHistory();
+  const rec=recordedDates();
+  const{tot,mA,sA}=calc(state.sel,fsUsed);
+  const selArr=[...state.sel].sort();
+  const pct=state.solde>0?Math.min(100,Math.round(posed/state.solde*100)):0;
+  const y=state.year,m=state.month;
+  const offset=mondayOffset(`${y}-${String(m+1).padStart(2,'0')}-01`);
+  const daysInMonth=new Date(y,m+1,0).getDate();
+
+  let calRows='',dayCells='',cellCount=0;
+  for(let i=0;i<offset;i++){dayCells+=`<td></td>`;cellCount++;}
+  for(let d=1;d<=daysInMonth;d++){
+    const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dw=dow(ds);
+    const isWork=WORK_DAYS.has(dw);
+    let cls='day-btn';
+    if(isFerie(ds)) cls+=' ferie';
+    else if(state.sel.has(ds)) cls+=' selected';
+    else if(mA.includes(ds)) cls+=' auto-mer';
+    else if(sA.includes(ds)) cls+=' auto-sam';
+    else if(rec.has(ds)) cls+=' recorded';
+    else if(!isWork) cls+=' off-day';
+    const dis=(!isWork||isFerie(ds)||rec.has(ds))?'disabled':'';
+    dayCells+=`<td><button class="${cls}" ${dis} onclick="toggleDay('${ds}')">${d}</button></td>`;
+    cellCount++;
+    if(cellCount%7===0){calRows+=`<tr>${dayCells}</tr>`;dayCells='';}
+  }
+  if(dayCells){while(cellCount%7!==0){dayCells+=`<td></td>`;cellCount++;}calRows+=`<tr>${dayCells}</tr>`;}
+
+  const selTags=selArr.map(s=>`<span class="day-tag sel" onclick="toggleDay('${s}')">${fmtFR(s)}<span class="rm">×</span></span>`).join('');
+  const merTags=mA.map(s=>`<span class="day-tag mer">${fmtFR(s)}<span style="font-size:10px"> (mer. auto)</span></span>`).join('');
+  const samTags=sA.map(s=>`<span class="day-tag sam">${fmtFR(s)}<span style="font-size:10px"> (sam. CCN)</span></span>`).join('');
+  const prevM=m===0?11:m-1,prevY=m===0?y-1:y;
+  const nextM=m===11?0:m+1,nextY=m===11?y+1:y;
+
+  app.innerHTML=`
+  <div class="cards">
+    <div class="card accent">
+      <div class="label">Acquis à ce jour</div>
+      <div style="display:flex;align-items:baseline;gap:4px">
+        <input class="val-input" type="number" min="0" step="0.5" value="${state.solde}"
+          oninput="setSolde(this.value)" title="Clique pour modifier ton solde"/>
+        <span style="font-size:13px;color:#3b6d11;font-weight:500">j.o.</span>
+      </div>
+      <div class="sub">✏️ <span>Modifiable directement</span></div>
+    </div>
+    <div class="card">
+      <div class="label">Mois travaillés</div>
+      <div style="display:flex;align-items:baseline;gap:4px">
+        <input style="width:60px;font-size:22px;font-weight:600;color:#1a1a1a;border:none;background:transparent;outline:none;padding:0" type="number" min="1" max="12" value="${state.moisTravailles}" oninput="setMois(this.value)"/>
+        <span style="font-size:13px;color:#888;font-weight:500">mois</span>
+      </div>
+      <div class="sub" style="color:#aaa">× 2,5 j.o./mois</div>
+    </div>
+    <div class="card">
+      <div class="label">Congés posés</div>
+      <div class="val">${posed} j.o.</div>
+    </div>
+    <div class="card ${restants<0?'warn':restants<=3&&state.solde>0?'warn':''}">
+      <div class="label">Restants</div>
+      <div class="val">${restants} j.o.</div>
+    </div>
+    <div class="card ${(fsUsed+sA.length)>=5?'dim':''}">
+      <div class="label">Ven — Sam</div>
+      <div class="val">${fsUsed+sA.length}/5</div>
+      <div class="sub" style="margin-top:6px">
+        <button onclick="resetFS()" style="font-size:10px;padding:2px 8px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;color:#888" title="Réinitialiser au 1er juin">🔄 RAZ 1er juin</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="plus-row">
+    <button class="plus-btn" onclick="openModal()">➕ Ajouter des jours acquis</button>
+    <span class="hint">✅ Travail normal : <strong>2,5 j.o. / mois</strong> &nbsp;|&nbsp; 🤒 Maladie : <strong>2 j.o. / mois</strong></span>
+  </div>
+
+  ${state.solde>0?`<div class="progress-wrap">
+    <div class="progress-label"><span>Utilisation du solde</span><span>${posed} / ${state.solde} j.o. — ${pct}%</span></div>
+    <div class="progress-bar"><div class="progress-fill ${pct>85?'warn':''}" style="width:${pct}%"></div></div>
+  </div>`:''}
+
+  <div class="legend">
+    <div class="leg-item"><div class="leg-dot" style="background:#1d9e75"></div>Sélectionné</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#b5d4f4"></div>Sam. auto (CCN)</div>
+    <div class="leg-item" style="font-size:11px;color:#888">● = déjà enregistré</div>
+  </div>
+
+  <div class="nav">
+    <button onclick="goMonth(${prevY},${prevM})">‹</button>
+    <span class="mth">${MOIS[m]} ${y}</span>
+    <button onclick="goMonth(${nextY},${nextM})">›</button>
+  </div>
+
+  <table class="cal">
+    <thead><tr>${JOURS_HDR.map((j,i)=>`<th class="${i>=5?'weekend':''}">${j}</th>`).join('')}</tr></thead>
+    <tbody>${calRows}</tbody>
+  </table>
+
+  <div class="panel">
+    <h3>Récapitulatif de la sélection</h3>
+    ${selArr.length===0?'<span style="font-size:13px;color:#bbb">Aucun jour sélectionné</span>':''}
+    ${selTags}${merTags}${samTags}
+    ${(fsUsed>=5)&&sA.length===0&&selArr.some(s=>dow(s)===5)?`<div class="alert">⚠ Règle vendredi→samedi épuisée (5/5)</div>`:''}
+    ${(state.solde>0&&restants-tot<0)?`<div class="alert">⚠ Solde insuffisant — il manque ${Math.abs(Math.round((restants-tot)*10)/10)} j.o.</div>`:''}
+    ${selArr.length>0?`<div class="total-line"><span>Total à déduire</span><span>${tot} j.o.</span></div>`:''}
+  </div>
+
+  ${selArr.length>0?`
+  <textarea class="note-inp" rows="2" placeholder="Note optionnelle…" oninput="setNote(this.value)">${state.note}</textarea>
+  <div class="btn-row">
+    <button class="primary" onclick="enregistrer()">✓ Enregistrer</button>
+    <button onclick="clearSel()">✕ Effacer</button>
+  </div>`:''}
+
+  ${state.history.length>0?`
+  <div style="margin-top:1rem">
+    <div class="section-title">Historique (${posed} j.o. posés au total)</div>
+    ${state.history.map((h,i)=>`
+    <div class="hist-item">
+      <div class="hi-top">
+        <span>${h.days&&h.days.length?h.days.length+' jour(s) → ':''}<strong>${h.tot} j.o. déduits</strong></span>
+        <span><span class="badge">${h.tot} j.o.</span><button class="del-btn" onclick="delHist(${i})">×</button></span>
+      </div>
+      ${h.days&&h.days.length?`<div class="hi-sub">${h.days.map(fmtFR).join(', ')}${h.mA&&h.mA.length?' + mer : '+h.mA.map(fmtFR).join(', '):''}${h.sA&&h.sA.length?' + sam : '+h.sA.map(fmtFR).join(', '):''}
+      </div>`:''}
+      ${h.note?`<div class="hi-note">${h.note}</div>`:''}
+    </div>`).join('')}
+  </div>`:''}
+  `;
+}
+
+function setSolde(v){state.solde=Math.max(0,parseFloat(v)||0);render();}
+function updatePeriode(k,v){state.periode[k]=v;render();}
+function resetFS(){ document.getElementById('raz-modal').classList.add('open'); }
+function closeRazModal(){ document.getElementById('raz-modal').classList.remove('open'); }
+function confirmRAZ(){
+  const total=state.history.reduce((a,h)=>a+(h.sA?h.sA.length:0),0);
+  state.fsResetCount=total;
+  closeRazModal();
+  render();
+}
+function setMois(v){state.moisTravailles=Math.max(1,parseInt(v)||1);render();}
+function toggleDay(s){if(state.sel.has(s))state.sel.delete(s);else state.sel.add(s);render();}
+function goMonth(y,m){state.year=y;state.month=m;render();}
+function setNote(v){state.note=v;}
+function clearSel(){state.sel=new Set();state.note='';render();}
+function openModal(){document.getElementById('modal').classList.add('open');document.getElementById('acq-input').value='2.5';}
+function closeModal(){document.getElementById('modal').classList.remove('open');}
+function confirmAcq(){
+  const v=parseFloat(document.getElementById('acq-input').value);
+  if(!v||v<=0)return;
+  state.solde=Math.round((state.solde+v)*10)/10;
+  state.moisTravailles=Math.round(state.moisTravailles+1);
+  closeModal();render();
+}
+function enregistrer(){
+  const r=calc(state.sel,fsUsedFromHistory());
+  if(r.tot===0)return;
+  state.history.push({days:[...state.sel].sort(),tot:r.tot,mA:r.mA,sA:r.sA,note:state.note});
+  state.sel=new Set();state.note='';render();
+}
+function delHist(i){state.history.splice(i,1);render();}
+render();
+</script>
+</body>
+</html>
